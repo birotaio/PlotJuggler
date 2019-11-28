@@ -20,19 +20,10 @@ ControllerStream::ControllerStream():_running(false),fd(-1)
 	QStringList  words_list;
 	words_list
 			<< "timestamp"
-			<<"currentPhaseA"
-			<<"currentPhaseB"
-			<<"currentPhaseC"
-			<<"magnitude"
-			<<"vBatMotor"
-			<<"theta"
 			<<"speed (RPM)"
 			<<"speed (kmh)"
-			<<"motorTemp"
 			<<"torque"
-			;
-
-
+			<<"anonymous_1";
 
 	foreach( const QString& name, words_list)
 	dataMap().addNumeric(name.toStdString());
@@ -165,7 +156,7 @@ void ControllerStream::loop()
 			uartDecoder.processBytes(read_buffer,bytes_read );
 
 		pushSingleCycle();
-		std::this_thread::sleep_for( std::chrono::microseconds(40) );
+		std::this_thread::sleep_for( std::chrono::microseconds(100) );
 	}
 
 }
@@ -176,26 +167,14 @@ double ControllerStream::getValueFromName(const  std::string &name, StreamSample
 
 	if( name == "timestamp")
 		value = sample.timestamp;
-	else if( name == "currentPhaseA")
-		value = float(sample.currentPhaseA) * 1./1000.;
-	else if( name == "currentPhaseB")
-		value = float(sample.currentPhaseB) * 1./1000.;
-	else if( name == "currentPhaseC")
-		value = float(sample.currentPhaseC) * 1./1000.;
-	else if( name == "magnitude")
-		value = sample.magnitude;
-	else if( name == "vBatMotor")
-		value = sample.vBatMotor;
-	else if( name == "theta")
-		value = sample.theta;
+	else if( name == "torque")
+		value = sample.torque;
 	else if( name == "speed (RPM)")
 		value = sample.speed;
 	else if( name == "speed (kmh)")
 		value = float(sample.speed) * 60 * 0.00207; //perimeter of the whell times nb of min in 1 hour
-	else if( name == "motorTemp" )
-		value = sample.motorTemp;
-	else if( name == "torque" )
-		value = sample.torque;
+	else if( name == "anonymous_1")
+		value = float(sample.anonymous_1);
 
 	return value;
 }
