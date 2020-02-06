@@ -7,12 +7,9 @@
 typedef struct
 {
 	uint32_t timestamp;
-	uint16_t phase;
 	uint16_t torque;
-	uint16_t motor_voltage;
-	int16_t  phaseACurrent;
-	int16_t  phaseBCurrent;
-	int16_t  phaseCCurrent;
+	uint16_t wheelSpeed;
+	uint16_t pedalSpeed;
 
 }  __attribute__((packed)) StreamSample;
 

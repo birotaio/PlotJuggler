@@ -13,19 +13,16 @@
 #include <QDir>
 #include <QMessageBox>
 
-#define ASSERV_FREQ 500.0
+#define ASSERV_FREQ 2116.0
 
 ControllerStream::ControllerStream():_running(false),fd(-1)
 {
 	QStringList  words_list;
 	words_list
 			<< "timestamp"
-			<<"phase"
 			<<"torque"
-			<<"motorVoltage"
-			<<"phaseACurrent"
-			<<"phaseBCurrent"
-			<<"phaseCCurrent";
+			<<"wheel speed (cRPM)"
+			<<"pedal speed (cRPM)";
 
 	foreach( const QString& name, words_list)
 	dataMap().addNumeric(name.toStdString());
@@ -171,22 +168,10 @@ double ControllerStream::getValueFromName(const  std::string &name, StreamSample
 		value = sample.timestamp;
 	else if( name == "torque")
 		value = sample.torque;
-//	else if( name == "speed (RPM)")
-//		value = sample.speed;
-//	else if( name == "speed (kmh)")
-//		value = float(sample.speed) * 60 * 0.00207; //perimeter of the whell times nb of min in 1 hour
-//	else if( name == "anonymous_1")
-//		value = float(sample.anonymous_1);
-	else if( name == "phase")
-		value = sample.phase;
-	else if( name == "motorVoltage")
-		value = sample.motor_voltage;
-	else if( name == "phaseACurrent")
-		value = sample.phaseACurrent;
-	else if( name == "phaseBCurrent")
-		value = sample.phaseBCurrent;
-	else if( name == "phaseCCurrent")
-		value = sample.phaseCCurrent;
+	else if( name == "wheel speed (cRPM)")
+		value = sample.wheelSpeed;
+	else if( name == "pedal speed (cRPM)")
+		value = sample.pedalSpeed;
 
 	return value;
 }
