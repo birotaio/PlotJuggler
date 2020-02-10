@@ -10,8 +10,6 @@
 #include <fstream>
 #include "ControllerStreamUARTDecoder.h"
 
-
-
 class  ControllerStream: public DataStreamer
 {
 	Q_OBJECT
@@ -44,10 +42,14 @@ private:
 	bool openPort();
 	void pushSingleCycle();
 	double getValueFromName(const  std::string &name, StreamSample &sample);
+	void updateFilename(QString basename);
 
 	std::thread _thread;
 	bool _running;
+	bool _saveData;
+	bool _fileInitialized;
 	int fd;
+	QString _outputFileName;
 	ControllerStreamUartDecoder uartDecoder;
 };
 

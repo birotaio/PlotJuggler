@@ -1,5 +1,4 @@
 #include "ControllerDataStream.h"
-#include <QFile>
 #include <QMessageBox>
 #include <thread>
 #include <mutex>
@@ -11,9 +10,13 @@
 #include <QInputDialog>
 #include <QStringList>
 #include <QDir>
-#include <QMessageBox>
+#include <QDate>
+#include <QTime>
+#include "stdio.h"
 
 #define ASSERV_FREQ 2116.0
+#define DEFAULT_OUTPUT_FILENAME "data_"
+#define DEFAULT_EXTENSION ".csv"
 
 ControllerStream::ControllerStream():_running(false),fd(-1)
 {
@@ -26,8 +29,8 @@ ControllerStream::ControllerStream():_running(false),fd(-1)
 
 	foreach( const QString& name, words_list)
 	dataMap().addNumeric(name.toStdString());
+	_fileInitialized = false;
 }
-
 
 bool ControllerStream::openPort()
 {
@@ -85,6 +88,14 @@ bool ControllerStream::start(QStringList*)
 		}
 	}
 
+	QMessageBox::StandardButton reply =
+			QMessageBox::question(nullptr, "Save data to file", "Would you like to save the plotted data?",
+								  QMessageBox::Yes|QMessageBox::No);
+	_saveData = (reply == QMessageBox::Yes);
+	if (_saveData){
+		_fileInitialized = false;
+	}
+
 	if(ok)
 	{
 
@@ -123,22 +134,47 @@ ControllerStream::~ControllerStream()
 
 void ControllerStream::pushSingleCycle()
 {
+	if (!_fileInitialized && _saveData){
+		updateFilename(DEFAULT_OUTPUT_FILENAME);
+		QFile file(_outputFileName);
+		file.open(QIODevice::WriteOnly|QIODevice::Append|QIODevice::Text);
+		QString finalString;
+		for (auto& it: dataMap().numeric ){
+			finalString.append(QString::fromStdString(it.first));
+			finalString.append(",");
+		}
+		int stringSize = finalString.size();
+		finalString = finalString.left(stringSize - 1);
+		finalString.append("\n");
+		file.write(finalString.toLatin1().data());
+		file.close();
+		_fileInitialized = true;
+	}
+
 	StreamSample sample;
 	while( uartDecoder.getDecodedSample(&sample) )
 	{
 		std::lock_guard<std::mutex> lock( mutex() );
 
 		double timestamp = double(sample.timestamp) * 1.0/ASSERV_FREQ;
-
+		QFile file(_outputFileName);
+		file.open(QIODevice::WriteOnly|QIODevice::Append|QIODevice::Text);
+		QString finalString;
 		for (auto& it: dataMap().numeric )
 		{
 			double value = getValueFromName(it.first, sample);
 			if(value == NAN)
 				value = 0;
-
 			auto& plot = it.second;
 			plot.pushBack( PlotData::Point( timestamp, value ) );
+			finalString.append(QString::number(value, 'f'));
+			finalString.append(",");
 		}
+		int stringSize = finalString.size();
+		finalString = finalString.left(stringSize - 1);
+		finalString.append("\n");
+		file.write(finalString.toLatin1().data());
+		file.close();
 	}
 }
 
@@ -155,7 +191,7 @@ void ControllerStream::loop()
 			uartDecoder.processBytes(read_buffer,bytes_read );
 
 		pushSingleCycle();
-		std::this_thread::sleep_for( std::chrono::microseconds(100) );
+		std::this_thread::sleep_for( std::chrono::microseconds(400) );
 	}
 
 }
@@ -176,7 +212,27 @@ double ControllerStream::getValueFromName(const  std::string &name, StreamSample
 	return value;
 }
 
+void ControllerStream::updateFilename(QString basename){
+	QDate today = QDate::currentDate();
+	QTime now = QTime::currentTime();
+	QString day = QString::number(today.day());
+	QString month = QString::number(today.month());
+	QString year = QString::number(today.year());
+	QString hour = QString::number(now.hour());
+	QString minutes = QString::number(now.minute());
+	QString seconds = QString::number(now.second());
+	_outputFileName = basename;
+	_outputFileName.append(day);
+	_outputFileName.append(month);
+	_outputFileName.append(year);
+	_outputFileName.append(hour);
+	_outputFileName.append(minutes);
+	_outputFileName.append(seconds);
+	_outputFileName.append(DEFAULT_EXTENSION);
 
+	QByteArray byteArray = _outputFileName.toLocal8Bit();
+	printf("Filename: %s\n",byteArray.data());
+}
 
 bool ControllerStream::xmlSaveState(QDomDocument &doc, QDomElement &parent_element) const
 {
